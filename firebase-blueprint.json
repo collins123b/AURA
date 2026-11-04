@@ -1,0 +1,460 @@
+{
+  "entities": {
+    "UserBackup": {
+      "title": "UserBackup",
+      "description": "Per-user academic and profile snapshot for cross-device backup and automatic sign-in restore across Android and Web/iOS PWA.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Authenticated owner UID matching request.auth.uid."
+        },
+        "studentName": {
+          "type": "string",
+          "description": "Student display name (1..100 chars)."
+        },
+        "institution": {
+          "type": "string",
+          "description": "University or college name (0..150 chars)."
+        },
+        "department": {
+          "type": "string",
+          "description": "Academic department or major (0..150 chars)."
+        },
+        "targetGpa": {
+          "type": "number",
+          "description": "Target GPA on 0.0..5.0 scale."
+        },
+        "coursesCount": {
+          "type": "integer",
+          "description": "Total number of backed-up courses."
+        },
+        "lecturesCount": {
+          "type": "integer",
+          "description": "Total number of backed-up timetable lectures."
+        },
+        "assessmentsCount": {
+          "type": "integer",
+          "description": "Total number of backed-up exams and assignments."
+        },
+        "flashcardsCount": {
+          "type": "integer",
+          "description": "Total number of backed-up SM-2 flashcards."
+        },
+        "totalFocusMinutes": {
+          "type": "integer",
+          "description": "Cumulative deep-focus minutes logged."
+        },
+        "profileSettings": {
+          "type": "array",
+          "description": "Bounded list (max 40) of key=value profile and preference entries."
+        },
+        "courseRecords": {
+          "type": "array",
+          "description": "Bounded list (max 50) of pipe-delimited course records."
+        },
+        "lectureRecords": {
+          "type": "array",
+          "description": "Bounded list (max 80) of pipe-delimited timetable lecture records."
+        },
+        "assessmentRecords": {
+          "type": "array",
+          "description": "Bounded list (max 80) of pipe-delimited exam and assignment records."
+        },
+        "flashcardRecords": {
+          "type": "array",
+          "description": "Bounded list (max 100) of pipe-delimited SM-2 flashcard records."
+        },
+        "noteRecords": {
+          "type": "array",
+          "description": "Bounded list (max 80) of pipe-delimited study note records."
+        },
+        "gradeRecords": {
+          "type": "array",
+          "description": "Bounded list (max 60) of pipe-delimited GPA course grade records."
+        },
+        "expenseRecords": {
+          "type": "array",
+          "description": "Bounded list (max 100) of pipe-delimited campus expense records."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp via FieldValue.serverTimestamp()."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp via FieldValue.serverTimestamp()."
+        }
+      },
+      "required": [
+        "userId",
+        "studentName",
+        "institution",
+        "department",
+        "targetGpa",
+        "coursesCount",
+        "lecturesCount",
+        "assessmentsCount",
+        "flashcardsCount",
+        "totalFocusMinutes",
+        "courseRecords",
+        "lectureRecords",
+        "assessmentRecords",
+        "flashcardRecords",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "StudyRoom": {
+      "title": "StudyRoom",
+      "description": "Real-time cross-town and cross-platform (Android + iPhone/Browser PWA) live study stage with host moderation, waiting room, whiteboard lock, live pop-quiz polls, and WebRTC voice bridge.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "description": "UID of the student hosting the study room."
+        },
+        "ownerName": {
+          "type": "string",
+          "description": "Display name of the room host."
+        },
+        "courseCode": {
+          "type": "string",
+          "description": "Course code associated with the session (e.g., CSC 301)."
+        },
+        "roomTitle": {
+          "type": "string",
+          "description": "Title of the live study session."
+        },
+        "focusTopic": {
+          "type": "string",
+          "description": "Current chapter, exam topic, or Pomodoro goal."
+        },
+        "activeMinutes": {
+          "type": "integer",
+          "description": "Target focus duration in minutes (1..720)."
+        },
+        "visibility": {
+          "type": "string",
+          "enum": ["CAMPUS", "UNLISTED", "PRIVATE"],
+          "description": "Access scope: CAMPUS (public lobby + code), UNLISTED (cross-town invite code / URL only), PRIVATE (solo vault)."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["ACTIVE", "COMPLETED"],
+          "description": "Lifecycle state; COMPLETED is terminal."
+        },
+        "joinCode": {
+          "type": "string",
+          "description": "6-character alphanumeric invite code for cross-town and browser joining."
+        },
+        "timerState": {
+          "type": "string",
+          "enum": ["IDLE", "RUNNING", "PAUSED"],
+          "description": "Synchronized cloud Pomodoro countdown state."
+        },
+        "timerEndEpochMillis": {
+          "type": "integer",
+          "description": "UTC epoch millis when RUNNING countdown reaches zero."
+        },
+        "timerRemainingSeconds": {
+          "type": "integer",
+          "description": "Remaining countdown seconds when IDLE or PAUSED (0..43200)."
+        },
+        "sharedBoardNote": {
+          "type": "string",
+          "description": "Collaborative live whiteboard / key formulas note (0..2000 chars)."
+        },
+        "waitingRoomEnabled": {
+          "type": "boolean",
+          "description": "When true, non-host guests enter WAITING admissionStatus until admitted by host."
+        },
+        "whiteboardLocked": {
+          "type": "boolean",
+          "description": "When true (Lecture Mode), only Host or Co-Hosts can edit sharedBoardNote."
+        },
+        "coHostIds": {
+          "type": "array",
+          "description": "Bounded list (max 10) of promoted Co-Host UIDs."
+        },
+        "voiceRoomUrl": {
+          "type": "string",
+          "description": "Zero-cost Jitsi WebRTC room URL for live voice, camera, and slide screen-sharing across Android and iPhone browsers (0..200 chars)."
+        },
+        "activePollQuestion": {
+          "type": "string",
+          "description": "Live stage pop-quiz or poll question pushed by Host/Co-Host (0..300 chars)."
+        },
+        "activePollOptions": {
+          "type": "array",
+          "description": "Bounded list (max 4) of poll answer choices (A/B/C/D)."
+        },
+        "activePollCorrectIndex": {
+          "type": "integer",
+          "description": "Correct option index (0..3) for pop-quiz polls, or -1 for open opinion polls."
+        },
+        "activePollRevealed": {
+          "type": "boolean",
+          "description": "Whether the host has revealed the correct poll answer to the stage."
+        },
+        "spotlightCardText": {
+          "type": "string",
+          "description": "Synchronized flashcard or exam question pinned to the top stage spotlight (0..600 chars)."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp via FieldValue.serverTimestamp()."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp via FieldValue.serverTimestamp()."
+        }
+      },
+      "required": [
+        "ownerId",
+        "ownerName",
+        "courseCode",
+        "roomTitle",
+        "focusTopic",
+        "activeMinutes",
+        "visibility",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "SharedFlashcard": {
+      "title": "SharedFlashcard",
+      "description": "Peer-contributed active-recall flashcard inside a live study room.",
+      "type": "object",
+      "properties": {
+        "roomId": {
+          "type": "string",
+          "description": "Parent StudyRoom document ID."
+        },
+        "roomOwnerId": {
+          "type": "string",
+          "description": "Denormalized ownerId of the parent StudyRoom for O(1) list rule evaluation."
+        },
+        "roomVisibility": {
+          "type": "string",
+          "enum": ["CAMPUS", "UNLISTED", "PRIVATE"],
+          "description": "Denormalized visibility of the parent StudyRoom for O(1) list rule evaluation."
+        },
+        "authorId": {
+          "type": "string",
+          "description": "UID of the student sharing this flashcard."
+        },
+        "authorName": {
+          "type": "string",
+          "description": "Display name of the flashcard author."
+        },
+        "courseCode": {
+          "type": "string",
+          "description": "Course code tag."
+        },
+        "question": {
+          "type": "string",
+          "description": "Active-recall prompt question."
+        },
+        "answer": {
+          "type": "string",
+          "description": "Verified concise answer."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp via FieldValue.serverTimestamp()."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp via FieldValue.serverTimestamp()."
+        }
+      },
+      "required": [
+        "roomId",
+        "roomOwnerId",
+        "roomVisibility",
+        "authorId",
+        "authorName",
+        "courseCode",
+        "question",
+        "answer",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "RoomParticipant": {
+      "title": "RoomParticipant",
+      "description": "Live Meet-style participant tile state (presence, city/campus, platform badge, waiting room admission, live poll vote, hand raise, emoji reaction) inside a study room.",
+      "type": "object",
+      "properties": {
+        "roomId": {
+          "type": "string",
+          "description": "Parent StudyRoom document ID."
+        },
+        "roomOwnerId": {
+          "type": "string",
+          "description": "Denormalized ownerId of the parent StudyRoom for O(1) list rule evaluation."
+        },
+        "roomVisibility": {
+          "type": "string",
+          "enum": ["CAMPUS", "UNLISTED", "PRIVATE"],
+          "description": "Denormalized visibility of the parent StudyRoom for O(1) list rule evaluation."
+        },
+        "userId": {
+          "type": "string",
+          "description": "UID of the joined participant matching document ID and request.auth.uid."
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Display name of the participant (1..80 chars)."
+        },
+        "cityOrCampus": {
+          "type": "string",
+          "description": "Optional location/campus badge (0..80 chars) showing cross-town collaboration."
+        },
+        "studyStatus": {
+          "type": "string",
+          "enum": ["FOCUSING", "BREAK", "QUIZZING", "READY"],
+          "description": "Current live activity state of the scholar."
+        },
+        "handRaised": {
+          "type": "boolean",
+          "description": "Whether the participant has raised their hand for a question."
+        },
+        "reactionEmoji": {
+          "type": "string",
+          "description": "Latest live reaction emoji pulse (0..16 chars)."
+        },
+        "focusMinutesLogged": {
+          "type": "integer",
+          "description": "Minutes focused during this live session (0..10000)."
+        },
+        "admissionStatus": {
+          "type": "string",
+          "enum": ["ADMITTED", "WAITING", "REMOVED"],
+          "description": "Waiting room and moderation status controlled by Host/Co-Host."
+        },
+        "pollVoteIndex": {
+          "type": "integer",
+          "description": "Selected option index (0..3) for active stage poll, or -1 if unvoted."
+        },
+        "devicePlatform": {
+          "type": "string",
+          "enum": ["ANDROID", "IPHONE_WEB", "WEB_BROWSER"],
+          "description": "Platform indicator badge shown on live participant tile."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp via FieldValue.serverTimestamp()."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp via FieldValue.serverTimestamp()."
+        }
+      },
+      "required": [
+        "roomId",
+        "roomOwnerId",
+        "roomVisibility",
+        "userId",
+        "displayName",
+        "cityOrCampus",
+        "studyStatus",
+        "handRaised",
+        "reactionEmoji",
+        "focusMinutesLogged",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "RoomMessage": {
+      "title": "RoomMessage",
+      "description": "Real-time study room chat, Q&A question, or key insight message.",
+      "type": "object",
+      "properties": {
+        "roomId": {
+          "type": "string",
+          "description": "Parent StudyRoom document ID."
+        },
+        "roomOwnerId": {
+          "type": "string",
+          "description": "Denormalized ownerId of the parent StudyRoom for O(1) list rule evaluation."
+        },
+        "roomVisibility": {
+          "type": "string",
+          "enum": ["CAMPUS", "UNLISTED", "PRIVATE"],
+          "description": "Denormalized visibility of the parent StudyRoom for O(1) list rule evaluation."
+        },
+        "authorId": {
+          "type": "string",
+          "description": "UID of the message author matching request.auth.uid."
+        },
+        "authorName": {
+          "type": "string",
+          "description": "Display name of the message author (1..80 chars)."
+        },
+        "text": {
+          "type": "string",
+          "description": "Message text content (1..600 chars)."
+        },
+        "messageType": {
+          "type": "string",
+          "enum": ["CHAT", "QUESTION", "INSIGHT"],
+          "description": "Message classification tag."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp via FieldValue.serverTimestamp()."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp via FieldValue.serverTimestamp()."
+        }
+      },
+      "required": [
+        "roomId",
+        "roomOwnerId",
+        "roomVisibility",
+        "authorId",
+        "authorName",
+        "text",
+        "messageType",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/user_backups/{userId}": {
+      "schema": { "$ref": "#/entities/UserBackup" },
+      "description": "Strictly private per-user academic, profile, and settings backup keyed by UID."
+    },
+    "/study_rooms/{roomId}": {
+      "schema": { "$ref": "#/entities/StudyRoom" },
+      "description": "Live collaborative campus, cross-town invite-code, and browser-accessible study rooms."
+    },
+    "/study_rooms/{roomId}/shared_cards/{cardId}": {
+      "schema": { "$ref": "#/entities/SharedFlashcard" },
+      "description": "Shared flashcard deck items contributed inside a live study room."
+    },
+    "/study_rooms/{roomId}/participants/{participantId}": {
+      "schema": { "$ref": "#/entities/RoomParticipant" },
+      "description": "Live Meet-style participant tiles with presence, waiting room state, poll votes, hand raise, and reactions."
+    },
+    "/study_rooms/{roomId}/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/RoomMessage" },
+      "description": "Live collaborative Q&A and study chat messages inside a study room."
+    }
+  }
+}

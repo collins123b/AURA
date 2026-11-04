@@ -1,0 +1,512 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Default-Deny Safety Net (Must be first)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Hardened Primitives ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string &&
+             id.size() >= 1 &&
+             id.size() <= 128 &&
+             id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidBoundedStringList(arr, maxLen) {
+      return arr is list &&
+             arr.size() <= maxLen &&
+             (arr.size() == 0 || (arr[0] is string && arr[0].size() <= 500));
+    }
+
+    function isValidBoundedNoteList(arr, maxLen) {
+      return arr is list &&
+             arr.size() <= maxLen &&
+             (arr.size() == 0 || (arr[0] is string && arr[0].size() <= 1500));
+    }
+
+    function isValidCoHostList(arr) {
+      return arr is list &&
+             arr.size() <= 10 &&
+             (arr.size() == 0 || (arr[0] is string && arr[0].size() >= 1 && arr[0].size() <= 128));
+    }
+
+    function isValidPollOptionsList(arr) {
+      return arr is list &&
+             arr.size() <= 4 &&
+             (arr.size() == 0 || (arr[0] is string && arr[0].size() >= 1 && arr[0].size() <= 160));
+    }
+
+    function isValidVisibility(vis) {
+      return vis is string &&
+             vis.size() <= 16 &&
+             (vis == 'CAMPUS' || vis == 'UNLISTED' || vis == 'PRIVATE');
+    }
+
+    // --- Validation Blueprints ---
+    function isValidUserBackup(data) {
+      return isSignedIn() &&
+             data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.userId == request.auth.uid &&
+             data.studentName is string && data.studentName.size() >= 1 && data.studentName.size() <= 100 &&
+             data.institution is string && data.institution.size() <= 150 &&
+             data.department is string && data.department.size() <= 150 &&
+             data.targetGpa is number && data.targetGpa >= 0 && data.targetGpa <= 5 &&
+             data.coursesCount is int && data.coursesCount >= 0 && data.coursesCount <= 500 &&
+             data.lecturesCount is int && data.lecturesCount >= 0 && data.lecturesCount <= 1000 &&
+             data.assessmentsCount is int && data.assessmentsCount >= 0 && data.assessmentsCount <= 1000 &&
+             data.flashcardsCount is int && data.flashcardsCount >= 0 && data.flashcardsCount <= 5000 &&
+             data.totalFocusMinutes is int && data.totalFocusMinutes >= 0 && data.totalFocusMinutes <= 1000000 &&
+             isValidBoundedStringList(data.courseRecords, 50) &&
+             isValidBoundedStringList(data.lectureRecords, 80) &&
+             isValidBoundedStringList(data.assessmentRecords, 80) &&
+             isValidBoundedStringList(data.flashcardRecords, 100) &&
+             (!('profileSettings' in data) || isValidBoundedStringList(data.profileSettings, 40)) &&
+             (!('noteRecords' in data) || isValidBoundedNoteList(data.noteRecords, 80)) &&
+             (!('gradeRecords' in data) || isValidBoundedStringList(data.gradeRecords, 60)) &&
+             (!('expenseRecords' in data) || isValidBoundedStringList(data.expenseRecords, 100)) &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidStudyRoom(data) {
+      return isSignedIn() &&
+             data.ownerId is string && data.ownerId.size() >= 1 && data.ownerId.size() <= 128 &&
+             data.ownerName is string && data.ownerName.size() >= 1 && data.ownerName.size() <= 80 &&
+             data.courseCode is string && data.courseCode.size() >= 1 && data.courseCode.size() <= 24 &&
+             data.roomTitle is string && data.roomTitle.size() >= 2 && data.roomTitle.size() <= 120 &&
+             data.focusTopic is string && data.focusTopic.size() <= 240 &&
+             data.activeMinutes is int && data.activeMinutes >= 1 && data.activeMinutes <= 720 &&
+             isValidVisibility(data.visibility) &&
+             data.status is string && data.status.size() <= 16 &&
+             (data.status == 'ACTIVE' || data.status == 'COMPLETED') &&
+             (!('joinCode' in data) || (data.joinCode is string && data.joinCode.size() <= 16)) &&
+             (!('timerState' in data) || (data.timerState is string && data.timerState.size() <= 16 &&
+               (data.timerState == 'IDLE' || data.timerState == 'RUNNING' || data.timerState == 'PAUSED'))) &&
+             (!('timerEndEpochMillis' in data) || (data.timerEndEpochMillis is int && data.timerEndEpochMillis >= 0)) &&
+             (!('timerRemainingSeconds' in data) || (data.timerRemainingSeconds is int && data.timerRemainingSeconds >= 0 && data.timerRemainingSeconds <= 43200)) &&
+             (!('sharedBoardNote' in data) || (data.sharedBoardNote is string && data.sharedBoardNote.size() <= 2000)) &&
+             (!('waitingRoomEnabled' in data) || (data.waitingRoomEnabled is bool)) &&
+             (!('whiteboardLocked' in data) || (data.whiteboardLocked is bool)) &&
+             (!('coHostIds' in data) || isValidCoHostList(data.coHostIds)) &&
+             (!('voiceRoomUrl' in data) || (data.voiceRoomUrl is string && data.voiceRoomUrl.size() <= 200)) &&
+             (!('activePollQuestion' in data) || (data.activePollQuestion is string && data.activePollQuestion.size() <= 300)) &&
+             (!('activePollOptions' in data) || isValidPollOptionsList(data.activePollOptions)) &&
+             (!('activePollCorrectIndex' in data) || (data.activePollCorrectIndex is int && data.activePollCorrectIndex >= -1 && data.activePollCorrectIndex <= 3)) &&
+             (!('activePollRevealed' in data) || (data.activePollRevealed is bool)) &&
+             (!('spotlightCardText' in data) || (data.spotlightCardText is string && data.spotlightCardText.size() <= 600)) &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidSharedFlashcard(data) {
+      return isSignedIn() &&
+             data.roomId is string && data.roomId.size() >= 1 && data.roomId.size() <= 128 &&
+             data.roomOwnerId is string && data.roomOwnerId.size() >= 1 && data.roomOwnerId.size() <= 128 &&
+             isValidVisibility(data.roomVisibility) &&
+             data.authorId is string && data.authorId.size() >= 1 && data.authorId.size() <= 128 &&
+             data.authorId == request.auth.uid &&
+             data.authorName is string && data.authorName.size() >= 1 && data.authorName.size() <= 80 &&
+             data.courseCode is string && data.courseCode.size() >= 1 && data.courseCode.size() <= 24 &&
+             data.question is string && data.question.size() >= 2 && data.question.size() <= 500 &&
+             data.answer is string && data.answer.size() >= 1 && data.answer.size() <= 1000 &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidRoomParticipantShape(data) {
+      return isSignedIn() &&
+             data.roomId is string && data.roomId.size() >= 1 && data.roomId.size() <= 128 &&
+             data.roomOwnerId is string && data.roomOwnerId.size() >= 1 && data.roomOwnerId.size() <= 128 &&
+             isValidVisibility(data.roomVisibility) &&
+             data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 80 &&
+             data.cityOrCampus is string && data.cityOrCampus.size() <= 80 &&
+             data.studyStatus is string && data.studyStatus.size() <= 16 &&
+             (data.studyStatus == 'FOCUSING' || data.studyStatus == 'BREAK' || data.studyStatus == 'QUIZZING' || data.studyStatus == 'READY') &&
+             data.handRaised is bool &&
+             data.reactionEmoji is string && data.reactionEmoji.size() <= 16 &&
+             data.focusMinutesLogged is int && data.focusMinutesLogged >= 0 && data.focusMinutesLogged <= 10000 &&
+             (!('admissionStatus' in data) || (data.admissionStatus is string && data.admissionStatus.size() <= 16 &&
+               (data.admissionStatus == 'ADMITTED' || data.admissionStatus == 'WAITING' || data.admissionStatus == 'REMOVED'))) &&
+             (!('pollVoteIndex' in data) || (data.pollVoteIndex is int && data.pollVoteIndex >= -1 && data.pollVoteIndex <= 3)) &&
+             (!('devicePlatform' in data) || (data.devicePlatform is string && data.devicePlatform.size() <= 24 &&
+               (data.devicePlatform == 'ANDROID' || data.devicePlatform == 'IPHONE_WEB' || data.devicePlatform == 'WEB_BROWSER'))) &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidRoomMessage(data) {
+      return isSignedIn() &&
+             data.roomId is string && data.roomId.size() >= 1 && data.roomId.size() <= 128 &&
+             data.roomOwnerId is string && data.roomOwnerId.size() >= 1 && data.roomOwnerId.size() <= 128 &&
+             isValidVisibility(data.roomVisibility) &&
+             data.authorId is string && data.authorId.size() >= 1 && data.authorId.size() <= 128 &&
+             data.authorId == request.auth.uid &&
+             data.authorName is string && data.authorName.size() >= 1 && data.authorName.size() <= 80 &&
+             data.text is string && data.text.size() >= 1 && data.text.size() <= 600 &&
+             data.messageType is string && data.messageType.size() <= 16 &&
+             (data.messageType == 'CHAT' || data.messageType == 'QUESTION' || data.messageType == 'INSIGHT') &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isCallerAdmittedInRoom(roomId, roomData) {
+      let pPath = /databases/$(database)/documents/study_rooms/$(roomId)/participants/$(request.auth.uid);
+      let needsWait = ('waitingRoomEnabled' in roomData) && roomData.waitingRoomEnabled == true;
+      return roomData.ownerId == request.auth.uid ||
+             (('coHostIds' in roomData) && (request.auth.uid in roomData.coHostIds)) ||
+             (exists(pPath) && (
+               (!needsWait && (!('admissionStatus' in get(pPath).data) || get(pPath).data.admissionStatus == 'ADMITTED')) ||
+               (needsWait && ('admissionStatus' in get(pPath).data) && get(pPath).data.admissionStatus == 'ADMITTED')
+             )) ||
+             (!needsWait && !exists(pPath));
+    }
+
+    function isParentRoomAccessible(roomId, expectedOwnerId, expectedVisibility) {
+      let parent = get(/databases/$(database)/documents/study_rooms/$(roomId)).data;
+      return parent.status == 'ACTIVE' &&
+             expectedOwnerId == parent.ownerId &&
+             expectedVisibility == parent.visibility &&
+             (parent.visibility == 'CAMPUS' ||
+              parent.visibility == 'UNLISTED' ||
+              parent.ownerId == request.auth.uid) &&
+             isCallerAdmittedInRoom(roomId, parent);
+    }
+
+    function isParentRoomOpenForJoin(roomId, expectedOwnerId, expectedVisibility) {
+      let parent = get(/databases/$(database)/documents/study_rooms/$(roomId)).data;
+      return parent.status == 'ACTIVE' &&
+             expectedOwnerId == parent.ownerId &&
+             expectedVisibility == parent.visibility &&
+             (parent.visibility == 'CAMPUS' ||
+              parent.visibility == 'UNLISTED' ||
+              parent.ownerId == request.auth.uid);
+    }
+
+    function isValidWaitingRoomAdmissionOnCreate(roomId, data) {
+      let parent = get(/databases/$(database)/documents/study_rooms/$(roomId)).data;
+      let requiresApproval = ('waitingRoomEnabled' in parent) && parent.waitingRoomEnabled == true;
+      return parent.ownerId == request.auth.uid ||
+             (('coHostIds' in parent) && (request.auth.uid in parent.coHostIds)) ||
+             !requiresApproval ||
+             (('admissionStatus' in data) && data.admissionStatus == 'WAITING');
+    }
+
+    function isParentHostOrCoHost(roomId) {
+      let parent = get(/databases/$(database)/documents/study_rooms/$(roomId)).data;
+      return parent.status == 'ACTIVE' &&
+             (parent.ownerId == request.auth.uid ||
+              (('coHostIds' in parent) && (request.auth.uid in parent.coHostIds)));
+    }
+
+    // 1. User Academic & Profile Backups (Strictly Owner-Only)
+    match /user_backups/{userId} {
+      allow get: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
+      allow list: if false;
+
+      allow create: if isSignedIn() &&
+                       isValidId(userId) &&
+                       request.auth.uid == userId &&
+                       incoming().keys().hasAll([
+                         'userId', 'studentName', 'institution', 'department', 'targetGpa',
+                         'coursesCount', 'lecturesCount', 'assessmentsCount', 'flashcardsCount',
+                         'totalFocusMinutes', 'courseRecords', 'lectureRecords',
+                         'assessmentRecords', 'flashcardRecords', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'studentName', 'institution', 'department', 'targetGpa',
+                         'coursesCount', 'lecturesCount', 'assessmentsCount', 'flashcardsCount',
+                         'totalFocusMinutes', 'profileSettings', 'courseRecords', 'lectureRecords',
+                         'assessmentRecords', 'flashcardRecords', 'noteRecords',
+                         'gradeRecords', 'expenseRecords', 'createdAt', 'updatedAt'
+                       ]) &&
+                       isValidUserBackup(incoming());
+
+      allow update: if isValidUserBackup(incoming()) && (
+                       isValidId(userId) &&
+                       request.auth.uid == userId &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'studentName', 'institution', 'department', 'targetGpa',
+                         'coursesCount', 'lecturesCount', 'assessmentsCount', 'flashcardsCount',
+                         'totalFocusMinutes', 'profileSettings', 'courseRecords', 'lectureRecords',
+                         'assessmentRecords', 'flashcardRecords', 'noteRecords',
+                         'gradeRecords', 'expenseRecords', 'updatedAt'
+                       ])
+                     );
+
+      allow delete: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
+    }
+
+    // 2. Live Collaborative Study Rooms (Campus Lobby + Cross-Town Invite Code + Browser/iPhone PWA)
+    match /study_rooms/{roomId} {
+      allow get: if isSignedIn() &&
+                    isValidId(roomId) &&
+                    (resource == null ||
+                     existing().ownerId == request.auth.uid ||
+                     existing().visibility == 'CAMPUS' ||
+                     existing().visibility == 'UNLISTED');
+
+      allow list: if isSignedIn() &&
+                     (existing().ownerId == request.auth.uid ||
+                      existing().visibility == 'CAMPUS');
+
+      allow create: if isSignedIn() &&
+                       isValidId(roomId) &&
+                       incoming().ownerId == request.auth.uid &&
+                       incoming().keys().hasAll([
+                         'ownerId', 'ownerName', 'courseCode', 'roomTitle', 'focusTopic',
+                         'activeMinutes', 'visibility', 'status', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'ownerId', 'ownerName', 'courseCode', 'roomTitle', 'focusTopic',
+                         'activeMinutes', 'visibility', 'status', 'joinCode',
+                         'timerState', 'timerEndEpochMillis', 'timerRemainingSeconds',
+                         'sharedBoardNote', 'waitingRoomEnabled', 'whiteboardLocked',
+                         'coHostIds', 'voiceRoomUrl', 'activePollQuestion', 'activePollOptions',
+                         'activePollCorrectIndex', 'activePollRevealed', 'spotlightCardText',
+                         'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().status == 'ACTIVE' &&
+                       isValidStudyRoom(incoming());
+
+      allow update: if isValidStudyRoom(incoming()) && (
+                       isValidId(roomId) &&
+                       existing().status != 'COMPLETED' &&
+                       incoming().ownerId == existing().ownerId &&
+                       incoming().createdAt == existing().createdAt && (
+                         // Tier 1 Action A: Host updates room details, security toggles, co-hosts, timer, polls, spotlight, or pinboard
+                         (existing().ownerId == request.auth.uid &&
+                          incoming().status == 'ACTIVE' &&
+                          incoming().diff(existing()).affectedKeys().hasOnly([
+                            'roomTitle', 'focusTopic', 'activeMinutes', 'visibility',
+                            'timerState', 'timerEndEpochMillis', 'timerRemainingSeconds',
+                            'sharedBoardNote', 'waitingRoomEnabled', 'whiteboardLocked',
+                            'coHostIds', 'voiceRoomUrl', 'activePollQuestion', 'activePollOptions',
+                            'activePollCorrectIndex', 'activePollRevealed', 'spotlightCardText',
+                            'updatedAt'
+                          ])) ||
+                         // Tier 1 Action B: Host completes study room (Terminal transition)
+                         (existing().ownerId == request.auth.uid &&
+                          incoming().status == 'COMPLETED' &&
+                          incoming().diff(existing()).affectedKeys().hasOnly([
+                            'status', 'timerState', 'timerRemainingSeconds', 'updatedAt'
+                          ])) ||
+                         // Tier 2 Action C: Promoted Co-Host controls live stage tools (timer, pinboard, polls, spotlight)
+                         (('coHostIds' in existing()) &&
+                          (request.auth.uid in existing().coHostIds) &&
+                          existing().status == 'ACTIVE' &&
+                          incoming().status == 'ACTIVE' &&
+                          incoming().diff(existing()).affectedKeys().hasOnly([
+                            'activeMinutes', 'timerState', 'timerEndEpochMillis', 'timerRemainingSeconds',
+                            'sharedBoardNote', 'activePollQuestion', 'activePollOptions',
+                            'activePollCorrectIndex', 'activePollRevealed', 'spotlightCardText',
+                            'updatedAt'
+                          ])) ||
+                         // Tier 3 Action D: Admitted Remote/Campus/Browser Peer co-edits shared whiteboard ONLY when unlocked
+                         ((existing().visibility == 'CAMPUS' || existing().visibility == 'UNLISTED') &&
+                          (!('whiteboardLocked' in existing()) || existing().whiteboardLocked == false) &&
+                          existing().status == 'ACTIVE' &&
+                          incoming().status == 'ACTIVE' &&
+                          incoming().diff(existing()).affectedKeys().hasOnly([
+                            'sharedBoardNote', 'updatedAt'
+                          ]) &&
+                          isCallerAdmittedInRoom(roomId, existing()))
+                       )
+                     );
+
+      allow delete: if isSignedIn() &&
+                       isValidId(roomId) &&
+                       existing().ownerId == request.auth.uid;
+
+      // 3. Shared Flashcard Deck Subcollection
+      match /shared_cards/{cardId} {
+        allow get: if isSignedIn() &&
+                      isValidId(roomId) &&
+                      isValidId(cardId) &&
+                      (existing().authorId == request.auth.uid ||
+                       existing().roomOwnerId == request.auth.uid ||
+                       existing().roomVisibility == 'CAMPUS' ||
+                       existing().roomVisibility == 'UNLISTED');
+
+        allow list: if isSignedIn() &&
+                       (existing().authorId == request.auth.uid ||
+                        existing().roomOwnerId == request.auth.uid ||
+                        existing().roomVisibility == 'CAMPUS' ||
+                        existing().roomVisibility == 'UNLISTED');
+
+        allow create: if isSignedIn() &&
+                         isValidId(roomId) &&
+                         isValidId(cardId) &&
+                         incoming().roomId == roomId &&
+                         incoming().keys().hasAll([
+                           'roomId', 'roomOwnerId', 'roomVisibility', 'authorId', 'authorName',
+                           'courseCode', 'question', 'answer', 'createdAt', 'updatedAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'roomId', 'roomOwnerId', 'roomVisibility', 'authorId', 'authorName',
+                           'courseCode', 'question', 'answer', 'createdAt', 'updatedAt'
+                         ]) &&
+                         isValidSharedFlashcard(incoming()) &&
+                         exists(/databases/$(database)/documents/study_rooms/$(roomId)) &&
+                         isParentRoomAccessible(roomId, incoming().roomOwnerId, incoming().roomVisibility);
+
+        allow update: if isValidSharedFlashcard(incoming()) && (
+                         isValidId(roomId) &&
+                         isValidId(cardId) &&
+                         existing().authorId == request.auth.uid &&
+                         incoming().authorId == existing().authorId &&
+                         incoming().roomId == existing().roomId &&
+                         incoming().roomOwnerId == existing().roomOwnerId &&
+                         incoming().roomVisibility == existing().roomVisibility &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'question', 'answer', 'courseCode', 'updatedAt'
+                         ])
+                       );
+
+        allow delete: if isSignedIn() &&
+                         isValidId(roomId) &&
+                         isValidId(cardId) &&
+                         (existing().authorId == request.auth.uid ||
+                          existing().roomOwnerId == request.auth.uid);
+      }
+
+      // 4. Live Meet-Style Participant Roster Subcollection (with Cryptographic Waiting Room, Ban Tombstone & Live Poll Votes)
+      match /participants/{participantId} {
+        allow get: if isSignedIn() &&
+                      isValidId(roomId) &&
+                      isValidId(participantId) &&
+                      (participantId == request.auth.uid ||
+                       (resource != null &&
+                        (existing().userId == request.auth.uid ||
+                         existing().roomOwnerId == request.auth.uid ||
+                         existing().roomVisibility == 'CAMPUS' ||
+                         existing().roomVisibility == 'UNLISTED')));
+
+        allow list: if isSignedIn() &&
+                       (existing().userId == request.auth.uid ||
+                        existing().roomOwnerId == request.auth.uid ||
+                        existing().roomVisibility == 'CAMPUS' ||
+                        existing().roomVisibility == 'UNLISTED');
+
+        allow create: if isSignedIn() &&
+                         isValidId(roomId) &&
+                         isValidId(participantId) &&
+                         participantId == request.auth.uid &&
+                         incoming().userId == request.auth.uid &&
+                         incoming().roomId == roomId &&
+                         incoming().keys().hasAll([
+                           'roomId', 'roomOwnerId', 'roomVisibility', 'userId', 'displayName',
+                           'cityOrCampus', 'studyStatus', 'handRaised', 'reactionEmoji',
+                           'focusMinutesLogged', 'createdAt', 'updatedAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'roomId', 'roomOwnerId', 'roomVisibility', 'userId', 'displayName',
+                           'cityOrCampus', 'studyStatus', 'handRaised', 'reactionEmoji',
+                           'focusMinutesLogged', 'admissionStatus', 'pollVoteIndex',
+                           'devicePlatform', 'createdAt', 'updatedAt'
+                         ]) &&
+                         (!('admissionStatus' in incoming()) || incoming().admissionStatus != 'REMOVED') &&
+                         isValidRoomParticipantShape(incoming()) &&
+                         exists(/databases/$(database)/documents/study_rooms/$(roomId)) &&
+                         isParentRoomOpenForJoin(roomId, incoming().roomOwnerId, incoming().roomVisibility) &&
+                         isValidWaitingRoomAdmissionOnCreate(roomId, incoming());
+
+        allow update: if isValidRoomParticipantShape(incoming()) && (
+                         isValidId(roomId) &&
+                         isValidId(participantId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().roomId == existing().roomId &&
+                         incoming().roomOwnerId == existing().roomOwnerId &&
+                         incoming().roomVisibility == existing().roomVisibility &&
+                         incoming().createdAt == existing().createdAt && (
+                           // Action A: Participant updates own presence, status, hand, emoji, or live poll vote (cannot self-admit or bypass REMOVED!)
+                           (participantId == request.auth.uid &&
+                            existing().userId == request.auth.uid &&
+                            ((!('admissionStatus' in incoming()) && !('admissionStatus' in existing())) ||
+                             (('admissionStatus' in incoming()) && ('admissionStatus' in existing()) &&
+                              incoming().admissionStatus == existing().admissionStatus &&
+                              existing().admissionStatus != 'REMOVED')) &&
+                            incoming().diff(existing()).affectedKeys().hasOnly([
+                              'displayName', 'cityOrCampus', 'studyStatus', 'handRaised',
+                              'reactionEmoji', 'focusMinutesLogged', 'pollVoteIndex',
+                              'devicePlatform', 'updatedAt'
+                            ])) ||
+                           // Action B: Host or Co-Host moderates participant (Admit from Waiting Room, Remove/Ban, or Lower Hand)
+                           (isParentHostOrCoHost(roomId) &&
+                            incoming().diff(existing()).affectedKeys().hasOnly([
+                              'admissionStatus', 'handRaised', 'updatedAt'
+                            ]))
+                         )
+                       );
+
+        // Kicked participants (admissionStatus == 'REMOVED') cannot delete their ban tombstone to rejoin!
+        allow delete: if isSignedIn() &&
+                         isValidId(roomId) &&
+                         isValidId(participantId) &&
+                         (existing().roomOwnerId == request.auth.uid ||
+                          (existing().userId == request.auth.uid &&
+                           (!('admissionStatus' in existing()) || existing().admissionStatus != 'REMOVED')));
+      }
+
+      // 5. Live Room Chat & Q&A Stream Subcollection
+      match /messages/{messageId} {
+        allow get: if isSignedIn() &&
+                      isValidId(roomId) &&
+                      isValidId(messageId) &&
+                      (existing().authorId == request.auth.uid ||
+                       existing().roomOwnerId == request.auth.uid ||
+                       existing().roomVisibility == 'CAMPUS' ||
+                       existing().roomVisibility == 'UNLISTED');
+
+        allow list: if isSignedIn() &&
+                       (existing().authorId == request.auth.uid ||
+                        existing().roomOwnerId == request.auth.uid ||
+                        existing().roomVisibility == 'CAMPUS' ||
+                        existing().roomVisibility == 'UNLISTED');
+
+        allow create: if isSignedIn() &&
+                         isValidId(roomId) &&
+                         isValidId(messageId) &&
+                         incoming().roomId == roomId &&
+                         incoming().keys().hasAll([
+                           'roomId', 'roomOwnerId', 'roomVisibility', 'authorId', 'authorName',
+                           'text', 'messageType', 'createdAt', 'updatedAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'roomId', 'roomOwnerId', 'roomVisibility', 'authorId', 'authorName',
+                           'text', 'messageType', 'createdAt', 'updatedAt'
+                         ]) &&
+                         isValidRoomMessage(incoming()) &&
+                         exists(/databases/$(database)/documents/study_rooms/$(roomId)) &&
+                         isParentRoomAccessible(roomId, incoming().roomOwnerId, incoming().roomVisibility);
+
+        allow update: if false;
+
+        allow delete: if isSignedIn() &&
+                         isValidId(roomId) &&
+                         isValidId(messageId) &&
+                         (existing().authorId == request.auth.uid ||
+                          existing().roomOwnerId == request.auth.uid);
+      }
+    }
+  }
+}

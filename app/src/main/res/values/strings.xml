@@ -1,0 +1,17 @@
+<resources>
+    <string name="app_name">AURA</string>
+    <string name="aura_widget_description">Live upcoming lecture countdown, campus walk departure time, and weekly focus progress.</string>
+    <string name="aura_schedule_widget_description">Full-day campus lecture timeline with hall locations, live class indicator, and 1-tap lecture creation.</string>
+    <string name="aura_exam_widget_description">Upcoming exam and assignment countdown gauge with hall/seat details and War Room quick-launch.</string>
+    <string name="aura_focus_widget_description">Compact 2x2 Deep Focus ring, study day streak counter, and 1-tap Pomodoro launcher.</string>
+    <string name="aura_study_deck_widget_description">Active course slide deck progress bar, due SM-2 flashcards badge, and 1-tap study shortcuts.</string>
+    <string name="about_developer_title">About &amp; Developer</string>
+    <string name="developer_label">Developer</string>
+    <string name="developer_name">Collins Bawa</string>
+    <string name="developer_email_label">Contact Email</string>
+    <string name="developer_email">cbawa83@gmail.com</string>
+    <string name="app_version_label">Version</string>
+    <string name="app_version_display">V 1.1.2</string>
+    <string name="contact_developer_action">Email Developer</string>
+    <string name="copy_developer_email_action">Copy Email</string>
+</resources>

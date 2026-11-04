@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  background: radial-gradient(circle at 15% 10%, rgba(56, 189, 248, 0.14), transparent 38%),
+    radial-gradient(circle at 85% 15%, rgba(167, 139, 250, 0.14), transparent 40%),
+    radial-gradient(circle at 50% 90%, rgba(52, 211, 153, 0.10), transparent 45%),
+    #070e1b;
+}
+
+html.light body {
+  color-scheme: light;
+  color: #0f172a;
+  background: radial-gradient(circle at 15% 10%, rgba(56, 189, 248, 0.18), transparent 40%),
+    radial-gradient(circle at 85% 15%, rgba(52, 211, 153, 0.16), transparent 40%),
+    #f1f5f9;
+}
+
+.aura-glass {
+  background: rgba(15, 27, 49, 0.74);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+html.light .aura-glass {
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(15, 23, 42, 0.10);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

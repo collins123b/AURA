@@ -1,0 +1,87 @@
+import { initializeApp } from 'firebase/app';
+import {
+  getAuth,
+  GoogleAuthProvider,
+  signInWithPopup,
+  signInWithRedirect,
+  signOut as firebaseSignOut,
+  type User
+} from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
+
+/**
+ * Shared Firebase project & named Firestore database with the AURA Android App.
+ * ZERO Gemini API keys or paid AI services are included or referenced in this web client.
+ * Note: Firebase client apiKey below is a public project identifier restricted by Firestore Security Rules
+ * and Firebase Auth Authorized Domains (not a billable Gemini key).
+ */
+const firebaseConfig = {
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyCXcozxGGW8VCLNGyW63lWEmSiu-KrsZJE',
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'gen-lang-client-0879201853.firebaseapp.com',
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'gen-lang-client-0879201853',
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || 'gen-lang-client-0879201853.firebasestorage.app',
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '974762479762',
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || '1:974762479762:android:74abd948afb7b26ef1564b'
+};
+
+export const FIRESTORE_DATABASE_ID =
+  import.meta.env.VITE_FIRESTORE_DATABASE_ID ||
+  'ai-studio-android-aura-63829403-a9de-4f28-9da2-e7be3968b280';
+
+export const app = initializeApp(firebaseConfig);
+export const auth = getAuth(app);
+
+// CRITICAL: Connect to the exact named Firestore database provisioned for the Android app!
+export const db = getFirestore(app, FIRESTORE_DATABASE_ID);
+
+const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({ prompt: 'select_account' });
+
+export async function signInWithGoogleBrowser(): Promise<User | null> {
+  try {
+    const cred = await signInWithPopup(auth, googleProvider);
+    return cred.user;
+  } catch (err: unknown) {
+    const code = (err as { code?: string })?.code || '';
+    if (
+      code === 'auth/popup-blocked' ||
+      code === 'auth/cancelled-popup-request' ||
+      code === 'auth/operation-not-supported-in-this-environment'
+    ) {
+      await signInWithRedirect(auth, googleProvider);
+      return null;
+    }
+    throw err;
+  }
+}
+
+export async function signOutBrowser(): Promise<void> {
+  await firebaseSignOut(auth);
+}
+
+export function detectBrowserPlatform(): 'IPHONE_WEB' | 'WEB_BROWSER' {
+  if (typeof navigator === 'undefined') return 'WEB_BROWSER';
+  const ua = navigator.userAgent || '';
+  const isIOS =
+    /iPhone|iPad|iPod/i.test(ua) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  return isIOS ? 'IPHONE_WEB' : 'WEB_BROWSER';
+}
+
+export function buildJitsiVoiceUrl(joinCode: string): string {
+  const clean = joinCode.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 8) || 'SCHOLARS';
+  return `https://meet.jit.si/AuraStudy-${clean}`;
+}
+
+export function normalizeJoinCode(raw: string): string {
+  const trimmed = raw.trim();
+  const match = /[?&]room=([A-Za-z0-9]{4,8})/i.exec(trimmed);
+  if (match && match[1]) {
+    return match[1].toUpperCase();
+  }
+  return trimmed
+    .toUpperCase()
+    .replace(/^ROOM_/, '')
+    .replace(/[^A-Z0-9]/g, '')
+    .slice(0, 8);
+}
